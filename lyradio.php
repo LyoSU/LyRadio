@@ -1,7 +1,11 @@
 <?php
 chdir(__DIR__);
-require 'phar.php';
-$settings = ['app_info' => ['api_id' => 6, 'api_hash' => 'eb06d4abfb49dc3eeb1aeb98ae0f581e'], 'updates' => ['handle_updates' => true]];
+if (!file_exists('madeline.php')) {
+    copy('https://phar.madelineproto.xyz/madeline.php', 'madeline.php');
+}
+include 'madeline.php';
+$settings = ['app_info' => ['api_id' => 6, 'api_hash' => 'eb06d4abfb49dc3eeb1aeb98ae0f581e']];
+
 try {
     $MadelineProto = new \danog\MadelineProto\API('bot.madeline', $settings);
 } catch (\danog\MadelineProto\Exception $e) {
