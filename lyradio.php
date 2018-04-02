@@ -1,57 +1,15 @@
-#!/usr/bin/env php
 <?php
-set_include_path(get_include_path().':'.realpath(dirname(__FILE__).'/MadelineProto/'));
-
-require_once 'vendor/autoload.php';
-if (file_exists('web_data.php')) {
-    require_once 'web_data.php';
-}
-
-echo 'Deserializing MadelineProto from session.madeline...'.PHP_EOL;
-$MadelineProto = false;
-
+chdir(__DIR__);
+require 'phar.php';
+$settings = ['app_info' => ['api_id' => 6, 'api_hash' => 'eb06d4abfb49dc3eeb1aeb98ae0f581e'], 'updates' => ['handle_updates' => true]];
 try {
-    $MadelineProto = new \danog\MadelineProto\API('session.madeline');
+    $MadelineProto = new \danog\MadelineProto\API('bot.madeline', $settings);
 } catch (\danog\MadelineProto\Exception $e) {
-    var_dump($e->getMessage());
+    \danog\MadelineProto\Logger::log($e->getMessage());
+    unlink('bot.madeline');
+    $MadelineProto = new \danog\MadelineProto\API('bot.madeline', $settings);
 }
-
-if (file_exists('.env')) {
-    echo 'Loading .env...'.PHP_EOL;
-    $dotenv = new Dotenv\Dotenv(getcwd());
-    $dotenv->load();
-}
-echo 'Loading settings...'.PHP_EOL;
-$settings = json_decode(getenv('MTPROTO_SETTINGS'), true) ?: [];
-
-if ($MadelineProto === false) {
-    echo 'Loading MadelineProto...'.PHP_EOL;
-    $MadelineProto = new \danog\MadelineProto\API($settings);
-    if (getenv('TRAVIS_COMMIT') == '') {
-        $sentCode = $MadelineProto->phone_login(readline('Enter your phone number: '));
-        \danog\MadelineProto\Logger::log([$sentCode], \danog\MadelineProto\Logger::NOTICE);
-        echo 'Enter the code you received: ';
-        $code = fgets(STDIN, (isset($sentCode['type']['length']) ? $sentCode['type']['length'] : 5) + 1);
-        $authorization = $MadelineProto->complete_phone_login($code);
-        \danog\MadelineProto\Logger::log([$authorization], \danog\MadelineProto\Logger::NOTICE);
-        if ($authorization['_'] === 'account.noPassword') {
-            throw new \danog\MadelineProto\Exception('2FA is enabled but no password is set!');
-        }
-        if ($authorization['_'] === 'account.password') {
-            \danog\MadelineProto\Logger::log(['2FA is enabled'], \danog\MadelineProto\Logger::NOTICE);
-            $authorization = $MadelineProto->complete_2fa_login(readline('Please enter your password (hint '.$authorization['hint'].'): '));
-        }
-        if ($authorization['_'] === 'account.needSignup') {
-            \danog\MadelineProto\Logger::log(['Registering new user'], \danog\MadelineProto\Logger::NOTICE);
-            $authorization = $MadelineProto->complete_signup(readline('Please enter your first name: '), readline('Please enter your last name (can be empty): '));
-        }
-
-        echo 'Serializing MadelineProto to session.madeline...'.PHP_EOL;
-        echo 'Wrote '.\danog\MadelineProto\Serialization::serialize('session.madeline', $MadelineProto).' bytes'.PHP_EOL;
-    } else {
-        $MadelineProto->bot_login(getenv('BOT_TOKEN'));
-    }
-}
+$MadelineProto->start();
 \danog\MadelineProto\Logger::log(['hey'], \danog\MadelineProto\Logger::ULTRA_VERBOSE);
 \danog\MadelineProto\Logger::log(['hey'], \danog\MadelineProto\Logger::VERBOSE);
 \danog\MadelineProto\Logger::log(['hey'], \danog\MadelineProto\Logger::NOTICE);
