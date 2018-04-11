@@ -1,11 +1,18 @@
-#!/usr/bin/env php
 <?php
-set_include_path(get_include_path().':'.realpath(dirname(__FILE__).'/MadelineProto/'));
-require_once 'vendor/autoload.php';
-$MadelineProto = new \danog\MadelineProto\API('session.madeline');
-$MadelineProto->session = 'session.madeline';
-$dotenv = new Dotenv\Dotenv(getcwd());
-$dotenv->load();
+chdir(__DIR__);
+if (!file_exists('madeline.php')) {
+    copy('https://phar.madelineproto.xyz/madeline.php', 'madeline.php');
+}
+include 'madeline.php';
+$settings = ['app_info' => ['api_id' => 6, 'api_hash' => 'eb06d4abfb49dc3eeb1aeb98ae0f581e']];
+try {
+    $MadelineProto = new \danog\MadelineProto\API('bot.madeline', $settings);
+} catch (\danog\MadelineProto\Exception $e) {
+    \danog\MadelineProto\Logger::log($e->getMessage());
+    unlink('bot.madeline');
+    $MadelineProto = new \danog\MadelineProto\API('bot.madeline', $settings);
+}
+$MadelineProto->start();
 
 function getDurationSeconds($file){
     $dur = shell_exec("ffmpeg -i ".$file." 2>&1");
